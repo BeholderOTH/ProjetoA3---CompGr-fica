@@ -1,11 +1,13 @@
 package Cena;
 
+//Imports OpenGL
 import com.jogamp.opengl.GL2;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.glu.GLU;
 import com.jogamp.opengl.util.awt.TextRenderer;
 
+//Imports Java
 import java.awt.*;
 
 public class EventListener implements GLEventListener {
@@ -30,18 +32,26 @@ public class EventListener implements GLEventListener {
     //Velocidade de translação da esfera nos eixos X-Y
     private float velocidadeY;
     private float velocidadeX;
+    //Valores referentes à velocidade adquirida pela esfera antes de pausas, paradas ou alterações no estado do jogo
     private float reservaVelocidadeY;
     private float reservaVelocidadeX;
+    //Delimitações do posicionamento da primeira textura da "vida" nos eixos X-Y
     private float vidasXMin = 35.0f;
     private float vidasXMax = 45.0f;
+    //Definição do número de vidas
     private int numVidas;
+    //Definição da pontuação no placar
     private int numPlacar;
+    //
+    public boolean sairTelaInicial = false;
     private Textura textura;
+    private Textura texturaTela;
     private TextRenderer textRenderer;
     public static GL2 gl = null;
     GLU glu;
 
     public void inicializarVariaveis() {
+        //Atribuição dos valores iniciais no começo do jogo às variáveis correspondentes
         posicaoBarraXFrontal = 50.0f;
         posicaoBarraXTraseira = -50.0f;
         liberarMovimentoBarra = false;
@@ -56,8 +66,10 @@ public class EventListener implements GLEventListener {
     }
 
     private void esfera(GL2 gl) {
+        //Definição do limite e tamanho da esfera
         double limite = 2*Math.PI;
         double i;
+
         gl.glBegin(GL2.GL_POLYGON);
         for(i = 0; i < limite; i+= 0.01) {
             gl.glVertex2d(centroEsferaX + raioX * Math.cos(i), centroEsferaY + raioY * Math.sin(i));
@@ -116,10 +128,27 @@ public class EventListener implements GLEventListener {
         }
     }
 
+    private void telaApresentacao(GL2 gl){
+        gl.glBegin(GL2.GL_QUADS);
+        gl.glTexCoord2f(0.0f, 0.0f);
+        gl.glVertex2f(xMinTela, yMinTela); //80.0f
+        gl.glTexCoord2f(1.0f, 0.0f);
+        gl.glVertex2f(xMaxTela, yMinTela); //90.0f
+        gl.glTexCoord2f(1.0f, 1.0f);
+        gl.glVertex2f(xMaxTela, yMaxTela); //90.0f
+        gl.glTexCoord2f(0.0f, 1.0f);
+        gl.glVertex2f(xMinTela, yMaxTela); //80.0f
+        gl.glEnd();
+    }
+
     public void desenhaTexto(String texto, int x, int y, Color cor) {
+        //Conversão de coordenadas relativas (X-Y) para coordenadas absolutas para projeção ortogonal na tela (X-Y)
+        int xAbs = (int) ((x - xMin) / (xMax - xMin) * Renderer.larguraJanela);
+        int yAbs = (int) ((y - yMin) / (yMax - yMin) * Renderer.alturaJanela);
+
         textRenderer.beginRendering(Renderer.larguraJanela, Renderer.alturaJanela);
         textRenderer.setColor(cor);
-        textRenderer.draw(texto, x, y);
+        textRenderer.draw(texto, xAbs, yAbs);
         textRenderer.endRendering();
     }
 
@@ -155,6 +184,26 @@ public class EventListener implements GLEventListener {
         centroEsferaX = 0.0f;
         centroEsferaY = 50.0f;
         System.out.println(numVidas);
+    }
+
+    public void exibirTelaApresentacao() {
+        //"Limpa" a tela para deixar o fundo preto
+        gl.glClearColor(0, 0, 0, 1);
+        gl.glClear(GL2.GL_COLOR_BUFFER_BIT);
+
+        //Cria uma instância da classe Textura
+        texturaTela = new Textura();
+        //Carrega a textura das vidas
+        texturaTela.carregarTextura("../Imgs/telaInicial.png");
+
+        texturaTela.aplicarTextura(gl);
+        texturaTela.configurarTextura(gl);
+
+        telaApresentacao(gl);
+
+        texturaTela.desabilitarTextura(gl);
+
+        gl.glFlush();
     }
 
     public void começarJogo() {
@@ -212,78 +261,97 @@ public class EventListener implements GLEventListener {
     public void display(GLAutoDrawable drawable) {
         gl = drawable.getGL().getGL2();
 
-        //Inicialização com a tela de fundo azul
-        gl.glClearColor(0, 0, 1, 1);
-        gl.glClear(GL2.GL_COLOR_BUFFER_BIT);
+        if (sairTelaInicial) {
+            //Inicialização com a tela de fundo azul
+            gl.glClearColor(0, 0, 1, 1);
+            gl.glClear(GL2.GL_COLOR_BUFFER_BIT);
 
-        //Definição da cor da barra
-        gl.glColor3f(1, 0, 0);
+            //Definição da cor da barra
+            gl.glColor3f(1, 0, 0);
 
-        barra(gl);
+            //Posiciona a barra com as dimensões e parâmetros especificados na tela
+            barra(gl);
 
-        textura.aplicarTextura(gl);
-        textura.configurarTextura(gl);
+            textura.aplicarTextura(gl);
+            textura.configurarTextura(gl);
 
-        vidas(gl, vidasXMin, vidasXMax, numVidas);
+            vidas(gl, vidasXMin, vidasXMax, numVidas);
 
-        textura.desabilitarTextura(gl);
+            textura.desabilitarTextura(gl);
 
-        gl.glLineWidth(3.0f);
-        tela(gl);
+            gl.glLineWidth(3.0f);
+            tela(gl);
 
-        desenhaTexto("Vidas:", 700, 100, Color.WHITE);
-        desenhaTexto("Pontuação:", 550, 100, Color.WHITE);
-        desenhaTexto("" + numPlacar, 600, 50, Color.WHITE);
+            desenhaTexto("Vidas:", 20, -75, Color.WHITE);
+            desenhaTexto("Pontuação:", -90, -75, Color.WHITE);
+            desenhaTexto("" + numPlacar, -70, -85, Color.WHITE);
 
-        centroEsferaY += velocidadeY;
-        centroEsferaX += velocidadeX;
+            centroEsferaY += velocidadeY;
+            centroEsferaX += velocidadeX;
 
-        //Colisão horizontal da esfera com os limites da tela
-        if (centroEsferaX + raioX >= xMaxTela || centroEsferaX - raioX <= xMinTela){
-            velocidadeX = -velocidadeX;
-        }
-
-        //Colisão vertical da esfera com os limites da tela
-        if (centroEsferaY + raioY >= yMaxTela || centroEsferaY - raioY <= yMinTela){
-            velocidadeY = -velocidadeY;
-        }
-
-        //Colisão vertical da barra com a esfera
-        if (centroEsferaY - raioY <= -35.0f && centroEsferaX >= posicaoBarraXTraseira && centroEsferaX <= posicaoBarraXFrontal){
-            float distanciaVertical = Math.abs(centroEsferaY - (-35.0f)); // Distância vertical entre o centro da esfera e a parte superior da barra
-            float distanciaHorizontal = Math.abs(centroEsferaX - (posicaoBarraXTraseira + posicaoBarraXFrontal) / 2.0f); // Distância horizontal entre o centro da esfera e o centro da barra
-
-            if (distanciaVertical < raioY && distanciaHorizontal < (posicaoBarraXFrontal - posicaoBarraXTraseira) / 2.0f) {
-                // Ajusta a posição da esfera para fora da barra na direção vertical
-                centroEsferaY = -35.0f + raioY + 0.1f;
-                velocidadeY = -velocidadeY;
-                numPlacar += 10;
+            //Colisão horizontal da esfera com os limites da tela
+            if (centroEsferaX + raioX >= xMaxTela || centroEsferaX - raioX <= xMinTela) {
+                velocidadeX = -velocidadeX;
             }
+
+            //Colisão vertical da esfera com os limites da tela
+            if (centroEsferaY + raioY >= yMaxTela || centroEsferaY - raioY <= yMinTela) {
+                velocidadeY = -velocidadeY;
+            }
+
+            //Colisão vertical da barra com a esfera
+            if (centroEsferaY - raioY <= -35.0f && centroEsferaX >= posicaoBarraXTraseira && centroEsferaX <= posicaoBarraXFrontal) {
+                float centroBarra = (posicaoBarraXTraseira + posicaoBarraXFrontal) / 2.0f;
+                float distanciaVertical = Math.abs(centroEsferaY - (-35.0f)); // Distância vertical entre o centro da esfera e a parte superior da barra
+                float distanciaHorizontal = Math.abs(centroEsferaX - centroBarra); // Distância horizontal entre o centro da esfera e o centro da barra
+
+                if (distanciaVertical < raioY && distanciaHorizontal < (posicaoBarraXFrontal - posicaoBarraXTraseira) / 2.0f) {
+                    // Ajusta a posição da esfera para fora da barra na direção vertical
+                    centroEsferaY = -35.0f + raioY + 0.1f;
+                    velocidadeY = -velocidadeY;
+                    numPlacar += 5;
+
+                    if (centroEsferaX <= centroBarra){
+                        velocidadeX *= 2.0f;
+                        velocidadeY *= 2.0f;
+                    }
+                    else {
+                        velocidadeX /= 2.0f;
+                        velocidadeY /= 2.0f;
+                    }
+                }
             /*
             centroEsferaY = -60.0f + raioY + 0.1f;
             velocidadeY = -velocidadeY;
              */
-        }
-
-        if (centroEsferaY <= -35.0f && centroEsferaY >= -55.0f){
-            if (centroEsferaX - raioX <= posicaoBarraXFrontal && centroEsferaX >= posicaoBarraXTraseira){
-                centroEsferaX = posicaoBarraXFrontal + raioX + 0.1f;
-                velocidadeX = -velocidadeX;
-            } else if (centroEsferaX + raioX >= posicaoBarraXTraseira && centroEsferaX <= posicaoBarraXFrontal) {
-                centroEsferaX = posicaoBarraXTraseira - raioX - 0.1f;
-                velocidadeX = -velocidadeX;
             }
+
+            if (centroEsferaY <= -35.0f && centroEsferaY >= -55.0f) {
+                if (centroEsferaX - raioX <= posicaoBarraXFrontal && centroEsferaX >= posicaoBarraXTraseira) {
+                    centroEsferaX = posicaoBarraXFrontal + raioX + 0.1f;
+                    velocidadeX = -velocidadeX;
+                } else if (centroEsferaX + raioX >= posicaoBarraXTraseira && centroEsferaX <= posicaoBarraXFrontal) {
+                    centroEsferaX = posicaoBarraXTraseira - raioX - 0.1f;
+                    velocidadeX = -velocidadeX;
+                }
+            }
+
+            //Retira a vida do jogador caso a bala ultrapasse a barra
+            if (centroEsferaY - raioY <= -65.0f) {
+                marcarPonto();
+                if(numVidas <= 0){
+                    inicializarVariaveis();
+                }
+            }
+
+            //Definição da cor da esfera
+            gl.glColor3f(0, 1, 0);
+
+            esfera(gl);
         }
-
-        //Retira a vida do jogador caso a bala ultrapasse a barra
-        if (centroEsferaY - raioY <= -65.0f){
-            marcarPonto();
+        else {
+            exibirTelaApresentacao();
         }
-
-        //Definição da cor da esfera
-        gl.glColor3f(0, 1, 0);
-
-        esfera(gl);
     }
 
     @Override

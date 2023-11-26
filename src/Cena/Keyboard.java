@@ -36,6 +36,10 @@ public class Keyboard implements KeyListener {
             case KeyEvent.VK_Y:
                 el.pararJogo();
                 break;
+            case KeyEvent.VK_ENTER:
+                if(!el.sairTelaInicial){
+                    el.sairTelaInicial = true;
+                }
         }
     }
 
