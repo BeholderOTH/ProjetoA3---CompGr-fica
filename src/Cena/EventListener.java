@@ -323,7 +323,8 @@ public class EventListener implements GLEventListener {
             /*
             centroEsferaY = -60.0f + raioY + 0.1f;
             velocidadeY = -velocidadeY;
-             */
+            TST
+            */
             }
 
             if (centroEsferaY <= -35.0f && centroEsferaY >= -55.0f) {
